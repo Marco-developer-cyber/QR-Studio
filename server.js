@@ -80,6 +80,21 @@ app.post('/api/qr', async (req, res) => {
     }
 });
 
+// Delete from history
+app.delete('/api/qr/:id', async (req, res) => {
+    const { id } = req.params;
+    if (!pool) {
+        return res.json({ success: true, message: 'Deleted locally (no database connected)' });
+    }
+    try {
+        await pool.query('DELETE FROM qr_history WHERE id = $1', [id]);
+        res.json({ success: true, message: 'QR code deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting QR code:', err);
+        res.status(500).json({ error: 'Failed to delete QR code' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

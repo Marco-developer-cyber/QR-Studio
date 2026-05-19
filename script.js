@@ -359,7 +359,7 @@ function drawLogo(canvas, logoUrl, logoSizePercent = 0.22) {
 }
 
 // --- Main QR Generation Function ---
-async function generateQR(data) {
+async function generateQR(data, shouldSave = true) {
     const qrcodeContainer = document.getElementById('qrcode');
     qrcodeContainer.innerHTML = '';
     
@@ -424,7 +424,9 @@ async function generateQR(data) {
                 showToast('QR-kod muvaffaqiyatli yaratildi!', 'success');
                 
                 // Save to Render database history
-                saveToHistory(data, fgColor, bgColor, selectedLogo);
+                if (shouldSave) {
+                    saveToHistory(data, fgColor, bgColor, selectedLogo);
+                }
                 
                 // Scroll to preview container on mobile screens
                 if (window.innerWidth <= 900) {
@@ -552,6 +554,7 @@ function clearResult() {
     document.getElementById('actions-card').style.display = 'none';
     document.getElementById('mockup-status').textContent = 'Yaratilishi kutilmoqda...';
     generatedQrUrl = '';
+    currentQrDbId = null;
 }
 
 // --- Initialize Drag zones ---
@@ -559,6 +562,8 @@ setupDropzone('image');
 setupDropzone('video');
 
 // --- Database History Functions ---
+let currentQrDbId = null;
+
 async function loadHistory() {
     try {
         const response = await fetch('/api/qr');
@@ -601,11 +606,17 @@ async function loadHistory() {
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
                         </button>
-                        <button class="history-action-btn load-item-btn" title="Yuklash">
+                        <button class="history-action-btn load-item-btn" title="Generatorga yuklash">
                             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                        <button class="history-action-btn delete-item-btn" title="Bazadan o'chirish" style="color: rgba(239, 68, 68, 0.85);">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                             </svg>
                         </button>
                     </div>
@@ -619,7 +630,12 @@ async function loadHistory() {
                 
                 div.querySelector('.load-item-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    loadHistoryItem(item.qr_text, item.fg_color, item.bg_color, item.logo);
+                    loadHistoryItem(item.qr_text, item.fg_color, item.bg_color, item.logo, item.id);
+                });
+
+                div.querySelector('.delete-item-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteHistoryItem(item.id);
                 });
                 
                 historyList.appendChild(div);
@@ -634,18 +650,55 @@ async function loadHistory() {
 
 async function saveToHistory(qr_text, fg_color, bg_color, logo) {
     try {
-        await fetch('/api/qr', {
+        const response = await fetch('/api/qr', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ qr_text, fg_color, bg_color, logo })
         });
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.id) {
+                currentQrDbId = data.id;
+            }
+        }
         loadHistory();
     } catch (err) {
         console.error('Error saving to history:', err);
     }
 }
 
-function loadHistoryItem(qr_text, fg_color, bg_color, logo) {
+async function deleteHistoryItem(id) {
+    try {
+        const response = await fetch(`/api/qr/${id}`, {
+            method: 'DELETE'
+        });
+        if (response.ok) {
+            showToast('QR-kod bazadan o\'chirildi!', 'success');
+            if (currentQrDbId === id) {
+                currentQrDbId = null;
+                clearResult();
+            }
+            loadHistory();
+        } else {
+            showToast('O\'chirishda xatolik yuz berdi', 'error');
+        }
+    } catch (err) {
+        console.error('Error deleting history item:', err);
+        showToast('O\'chirishda xatolik yuz berdi', 'error');
+    }
+}
+
+async function deleteCurrentQR() {
+    if (!currentQrDbId) {
+        showToast('Bazada o\'chirish uchun ID topilmadi', 'error');
+        return;
+    }
+    await deleteHistoryItem(currentQrDbId);
+}
+
+function loadHistoryItem(qr_text, fg_color, bg_color, logo, id) {
+    currentQrDbId = id;
+    
     const urlTabBtn = document.querySelector('.tab-btn[data-tab="url"]');
     if (urlTabBtn) urlTabBtn.click();
     
@@ -681,7 +734,8 @@ function loadHistoryItem(qr_text, fg_color, bg_color, logo) {
     });
     
     generatedQrUrl = qr_text;
-    generateQR(qr_text);
+    // Generate without saving to history to avoid duplicates
+    generateQR(qr_text, false);
     
     showToast('QR-kod yuklandi!', 'success');
 }
