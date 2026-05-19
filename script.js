@@ -697,10 +697,11 @@ async function deleteCurrentQR() {
 }
 
 function loadHistoryItem(qr_text, fg_color, bg_color, logo, id) {
-    currentQrDbId = id;
-    
     const urlTabBtn = document.querySelector('.tab-btn[data-tab="url"]');
     if (urlTabBtn) urlTabBtn.click();
+    
+    // Set ID after the tab click (since tab click calls clearResult which resets ID to null)
+    currentQrDbId = id;
     
     document.getElementById('url-input').value = qr_text;
     
