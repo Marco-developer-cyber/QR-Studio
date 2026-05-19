@@ -423,6 +423,9 @@ async function generateQR(data) {
                 
                 showToast('QR-kod muvaffaqiyatli yaratildi!', 'success');
                 
+                // Save to Render database history
+                saveToHistory(data, fgColor, bgColor, selectedLogo);
+                
                 // Scroll to preview container on mobile screens
                 if (window.innerWidth <= 900) {
                     const previewPanel = document.querySelector('.preview-panel');
@@ -554,3 +557,144 @@ function clearResult() {
 // --- Initialize Drag zones ---
 setupDropzone('image');
 setupDropzone('video');
+
+// --- Database History Functions ---
+async function loadHistory() {
+    try {
+        const response = await fetch('/api/qr');
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        const historyCard = document.getElementById('history-card');
+        const historyList = document.getElementById('history-list');
+        
+        if (data && data.length > 0) {
+            historyCard.style.display = 'block';
+            historyList.innerHTML = '';
+            
+            data.forEach(item => {
+                const dateStr = new Date(item.created_at).toLocaleString('uz-UZ', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                let iconSvg = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect></svg>';
+                
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <div class="history-item-left">
+                        <div class="history-icon-wrapper">
+                            ${iconSvg}
+                        </div>
+                        <div class="history-details">
+                            <span class="history-text" title="${escapeHtml(item.qr_text)}">${escapeHtml(item.qr_text)}</span>
+                            <span class="history-date">${dateStr}</span>
+                        </div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="history-action-btn copy-item-btn" title="Nusxalash">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        <button class="history-action-btn load-item-btn" title="Yuklash">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                div.querySelector('.copy-item-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(item.qr_text);
+                    showToast('Havola nusxalandi!', 'success');
+                });
+                
+                div.querySelector('.load-item-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadHistoryItem(item.qr_text, item.fg_color, item.bg_color, item.logo);
+                });
+                
+                historyList.appendChild(div);
+            });
+        } else {
+            historyCard.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Error loading history:', err);
+    }
+}
+
+async function saveToHistory(qr_text, fg_color, bg_color, logo) {
+    try {
+        await fetch('/api/qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ qr_text, fg_color, bg_color, logo })
+        });
+        loadHistory();
+    } catch (err) {
+        console.error('Error saving to history:', err);
+    }
+}
+
+function loadHistoryItem(qr_text, fg_color, bg_color, logo) {
+    const urlTabBtn = document.querySelector('.tab-btn[data-tab="url"]');
+    if (urlTabBtn) urlTabBtn.click();
+    
+    document.getElementById('url-input').value = qr_text;
+    
+    const fgColorInput = document.getElementById('fg-color');
+    const bgColorInput = document.getElementById('bg-color');
+    
+    fgColorInput.value = fg_color || '#000000';
+    if (bg_color === 'transparent') {
+        bgColorInput.dataset.transparent = 'true';
+        bgColorInput.value = '#ffffff';
+    } else {
+        delete bgColorInput.dataset.transparent;
+        bgColorInput.value = bg_color || '#ffffff';
+    }
+    
+    document.querySelectorAll('#fg-color ~ .color-presets .preset-color-btn').forEach(b => {
+        if (b.dataset.color === fg_color) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+    
+    document.querySelectorAll('#bg-color ~ .color-presets .preset-color-btn').forEach(b => {
+        if (b.dataset.color === bg_color) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+    
+    selectedLogo = logo || 'none';
+    const logoBtns = document.querySelectorAll('.logo-presets .logo-preset-btn');
+    logoBtns.forEach(btn => {
+        if (btn.dataset.logo === selectedLogo) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+    
+    generatedQrUrl = qr_text;
+    generateQR(qr_text);
+    
+    showToast('QR-kod yuklandi!', 'success');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// Load history logs on page load
+loadHistory();
