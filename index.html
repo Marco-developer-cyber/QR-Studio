@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ismoil tog'o QR Studio — Professional QR-kod generatori</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Rubik:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Animated background gradients -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="url(#logo-grad)" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <defs>
+                        <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#8b5cf6" />
+                            <stop offset="100%" stop-color="#ec4899" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <rect x="7" y="7" width="3" height="3" fill="currentColor" />
+                    <rect x="14" y="7" width="3" height="3" fill="currentColor" />
+                    <rect x="7" y="14" width="3" height="3" fill="currentColor" />
+                    <path d="M14 14h3v3h-3z" fill="currentColor" />
+                </svg>
+                <span>Ismoil tog'o QR Studio</span>
+            </div>
+            <p class="subtitle">Istalgan turdagi kontent uchun o'z logotipingiz bilan QR-kod yarating</p>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Left Panel: Creator Tools -->
+            <section class="panel creator-panel">
+                <!-- Navigation Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="url">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                            fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        <span>Havola</span>
+                    </button>
+                    <button class="tab-btn" data-tab="image">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                            fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>Rasm</span>
+                    </button>
+                    <button class="tab-btn" data-tab="video">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2"
+                            fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        </svg>
+                        <span>Video</span>
+                    </button>
+                </div>
+
+                <!-- Input Contents -->
+                <div class="tab-contents">
+                    <!-- URL Tab Content -->
+                    <div class="tab-content active" id="url-tab">
+                        <div class="input-group">
+                            <label for="url-input">Havola (URL) yoki Matn</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="url-input"
+                                    placeholder="URL-ni kiriting (masalan, https://google.com)">
+                                <span class="input-glow"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Tab Content -->
+                    <div class="tab-content" id="image-tab">
+                        <label>Rasm yuklang</label>
+                        <div class="drop-zone" id="image-dropzone">
+                            <input type="file" id="image-input" accept="image/*" class="file-input-hidden">
+                            <div class="drop-zone-prompt">
+                                <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p>Rasmni bu yerga sudrab olib keling yoki <span>qurilmadan tanlang</span></p>
+                                <span class="file-limits">Maks. o'lcham: 100 MB. PNG, JPG, WEBP, GIF qo'llab-quvvatlanadi</span>
+                            </div>
+                            <div class="drop-zone-selected" style="display: none;">
+                                <div class="file-info-badge">
+                                    <span class="file-name">filename.jpg</span>
+                                    <button class="remove-file-btn"
+                                        onclick="clearSelectedFile('image')">&times;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Tab Content -->
+                    <div class="tab-content" id="video-tab">
+                        <label>Video yuklang</label>
+                        <div class="drop-zone" id="video-dropzone">
+                            <input type="file" id="video-input" accept="video/*" class="file-input-hidden">
+                            <div class="drop-zone-prompt">
+                                <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5"
+                                    fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p>Videoni bu yerga sudrab olib keling yoki <span>qurilmadan tanlang</span></p>
+                                <span class="file-limits">Maks. o'lcham: 100 MB. MP4, WEBM, MOV qo'llab-quvvatlanadi</span>
+                            </div>
+                            <div class="drop-zone-selected" style="display: none;">
+                                <div class="file-info-badge">
+                                    <span class="file-name">filename.mp4</span>
+                                    <button class="remove-file-btn"
+                                        onclick="clearSelectedFile('video')">&times;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Progress -->
+                    <div class="upload-progress-container" id="upload-progress" style="display: none;">
+                        <div class="progress-info">
+                            <span class="progress-status">Fayl serverga yuklanmoqda...</span>
+                            <span class="progress-percent">0%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customizer Tools (Accordion) -->
+                <div class="customizer">
+                    <h3 class="section-title">QR-kodni sozlash</h3>
+
+                    <div class="customize-grid">
+                        <!-- Colors -->
+                        <div class="config-group">
+                            <label>Naqsh rangi (Old fon)</label>
+                            <div class="color-picker-row">
+                                <input type="color" id="fg-color" value="#000000" class="color-picker">
+                                <div class="color-presets">
+                                    <button class="preset-color-btn active" data-color="#000000"
+                                        style="background-color: #000000;"></button>
+                                    <button class="preset-color-btn" data-color="#4f46e5"
+                                        style="background-color: #4f46e5;"></button>
+                                    <button class="preset-color-btn" data-color="#0891b2"
+                                        style="background-color: #0891b2;"></button>
+                                    <button class="preset-color-btn" data-color="#059669"
+                                        style="background-color: #059669;"></button>
+                                    <button class="preset-color-btn" data-color="#db2777"
+                                        style="background-color: #db2777;"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-group">
+                            <label>Fon rangi</label>
+                            <div class="color-picker-row">
+                                <input type="color" id="bg-color" value="#ffffff" class="color-picker">
+                                <div class="color-presets">
+                                    <button class="preset-color-btn active" data-color="#ffffff"
+                                        style="background-color: #ffffff; border: 1px solid #ddd;"></button>
+                                    <button class="preset-color-btn" data-color="transparent"
+                                        style="background: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); background-size: 8px 8px; background-position: 0 0, 0 4px, 4px -4px, -4px 0;"
+                                        title="Shaffof"></button>
+                                    <button class="preset-color-btn" data-color="#e0e7ff"
+                                        style="background-color: #e0e7ff;"></button>
+                                    <button class="preset-color-btn" data-color="#fef08a"
+                                        style="background-color: #fef08a;"></button>
+                                    <button class="preset-color-btn" data-color="#fbcfe8"
+                                        style="background-color: #fbcfe8;"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Logo Selection -->
+                        <div class="config-group logo-group">
+                            <label>Markazdagi logotip</label>
+                            <div class="logo-presets">
+                                <button class="logo-preset-btn active" data-logo="none"
+                                    title="Logotipsiz">Yo'q</button>
+                                <button class="logo-preset-btn" data-logo="link" title="Havola">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor"
+                                        stroke-width="2" fill="none">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                    </svg>
+                                </button>
+                                <button class="logo-preset-btn" data-logo="image" title="Rasm">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor"
+                                        stroke-width="2" fill="none">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                </button>
+                                <button class="logo-preset-btn" data-logo="video" title="Video">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor"
+                                        stroke-width="2" fill="none">
+                                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                                    </svg>
+                                </button>
+                                <button class="logo-preset-btn upload-logo-btn" title="O'z logotipingiz">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor"
+                                        stroke-width="2" fill="none">
+                                        <path d="M12 5v14M5 12h14" />
+                                    </svg> O'z logotipingiz
+                                    <input type="file" id="custom-logo-input" accept="image/*" style="display: none;">
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Error Correction -->
+                        <div class="config-group">
+                            <label for="error-level">Xatolarni tuzatish darajasi (korreksiya)</label>
+                            <select id="error-level">
+                                <option value="L">Past (L — 7%)</option>
+                                <option value="M" selected>O'rtacha (M — 15%)</option>
+                                <option value="Q">Yuqoriroq (Q — 25%)</option>
+                                <option value="H">Yuqori (H — 30%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Action Button -->
+                <button class="primary-btn" id="generate-btn" onclick="handleGenerateClick()">
+                    <span>QR-kod yaratish</span>
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </section>
+
+            <!-- Right Panel: Interactive Live Preview -->
+            <section class="panel preview-panel">
+                <h3 class="section-title">Natijani ko'rish</h3>
+
+                <div class="preview-card-wrapper">
+                    <!-- Glassmorphism Mockup Card -->
+                    <div class="qr-mockup-card">
+                        <div class="card-header">
+                            <span class="card-dot"></span>
+                            <span class="card-title">Live Preview</span>
+                        </div>
+
+                        <div class="qr-container-outer">
+                            <div class="qr-container-inner" id="qrcode-frame">
+                                <!-- Cyberpunk scanning effect -->
+                                <div class="scan-line" id="scanner-line"></div>
+                                <div id="qrcode">
+                                    <!-- A placeholder message until generated -->
+                                    <div class="qr-placeholder">
+                                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
+                                            stroke="currentColor" stroke-width="1" stroke-dasharray="4 4">
+                                            <rect x="2" y="2" width="20" height="20" rx="3" />
+                                            <rect x="6" y="6" width="4" height="4" />
+                                            <rect x="14" y="6" width="4" height="4" />
+                                            <rect x="6" y="14" width="4" height="4" />
+                                        </svg>
+                                        <p>Formani to'ldiring va yaratish tugmasini bosing</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mockup-meta">
+                            <p class="mockup-action-text" id="mockup-status">Yaratilishi kutilmoqda...</p>
+                        </div>
+                    </div>
+
+                    <!-- Actions Card (Only shown when QR is successfully generated) -->
+                    <div class="actions-card" id="actions-card" style="display: none;">
+                        <button class="action-btn download-btn" onclick="downloadQR()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5"
+                                fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Yuklab olish (PNG)</span>
+                        </button>
+                        <button class="action-btn copy-btn" onclick="copyQRLink()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
+                                fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>Havolani nusxalash</span>
+                        </button>
+                        <button class="action-btn share-btn" onclick="shareQR()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
+                                fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"></circle>
+                                <circle cx="6" cy="12" r="3"></circle>
+                                <circle cx="18" cy="19" r="3"></circle>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                            </svg>
+                            <span>Ulashish</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bottom preview of uploaded media -->
+                <div class="media-preview-container" id="media-preview-container" style="display: none;">
+                    <h4>Faylni mahalliy ko'rish</h4>
+                    <div id="preview"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="qrcode-lib.js?v=4"></script>
+    <script src="script.js?v=4"></script>
+</body>
+
+</html>
