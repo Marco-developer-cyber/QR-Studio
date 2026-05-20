@@ -679,10 +679,16 @@ select option {
     height: 200px;
 }
 
+#qrcode {
+    width: 100%;
+    height: 100%;
+}
+
 #qrcode canvas,
 #qrcode img {
-    max-width: 100%;
-    height: auto;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
 }
 
 /* Scanning effect */
