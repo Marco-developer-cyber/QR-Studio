@@ -17,8 +17,16 @@ const upload = multer({
     limits: { fileSize: 50 * 1024 * 1024 } // 50 MB limit
 });
 
-// Serve static assets (for frontend files)
-app.use(express.static(__dirname));
+// Serve static assets with no-cache headers to prevent CDN caching issues
+app.use(express.static(__dirname, {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.html') || path.endsWith('.css') || path.endsWith('.js')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // PostgreSQL Connection Pool
 let pool = null;
