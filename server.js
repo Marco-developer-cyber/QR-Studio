@@ -1,6 +1,9 @@
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 require('dotenv').config();
 
 const app = express();
@@ -9,8 +12,65 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Set up local uploads directory
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
+
+// Configure multer storage
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, uniqueSuffix + ext);
+    }
+});
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 100 * 1024 * 1024 } // 100 MB limit
+});
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(uploadsDir));
+
 // Serve static assets
 app.use(express.static(__dirname));
+
+// Local upload API endpoint
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    res.json({ status: 'success', data: { url: fileUrl } });
+});
+
+// Background job to clean up files older than 60 minutes
+setInterval(() => {
+    fs.readdir(uploadsDir, (err, files) => {
+        if (err) return console.error('Error scanning uploads folder for cleanup:', err);
+        const now = Date.now();
+        files.forEach(file => {
+            const filePath = path.join(uploadsDir, file);
+            fs.stat(filePath, (err, stats) => {
+                if (err) return;
+                // 60 minutes = 3,600,000 milliseconds
+                if (now - stats.mtimeMs > 3600000) {
+                    fs.unlink(filePath, (err) => {
+                        if (err) console.error('Error deleting expired file:', filePath, err);
+                        else console.log('Deleted expired upload:', file);
+                    });
+                }
+            });
+        });
+    });
+}, 15 * 60 * 1000); // Check every 15 minutes
 
 // PostgreSQL Connection Pool
 let pool = null;

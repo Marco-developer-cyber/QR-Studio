@@ -175,43 +175,52 @@ bgColorInput.addEventListener('input', () => {
 
 // --- Logo Presets Setup ---
 const logoPresetBtns = document.querySelectorAll('.logo-presets .logo-preset-btn');
-logoPresetBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        if (btn.classList.contains('upload-logo-btn')) {
-            document.getElementById('custom-logo-input').click();
+if (logoPresetBtns && logoPresetBtns.length > 0) {
+    logoPresetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.classList.contains('upload-logo-btn')) {
+                const customLogoInput = document.getElementById('custom-logo-input');
+                if (customLogoInput) customLogoInput.click();
+                return;
+            }
+            
+            logoPresetBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedLogo = btn.dataset.logo;
+        });
+    });
+}
+
+const customLogoInput = document.getElementById('custom-logo-input');
+if (customLogoInput) {
+    customLogoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+            showToast('Iltimos, logotip uchun rasm faylini tanlang', 'error');
             return;
         }
         
-        logoPresetBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedLogo = btn.dataset.logo;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            customLogoDataUrl = event.target.result;
+            selectedLogo = 'custom';
+            
+            if (logoPresetBtns) {
+                logoPresetBtns.forEach(b => b.classList.remove('active'));
+            }
+            const uploadLogoBtn = document.querySelector('.upload-logo-btn');
+            if (uploadLogoBtn) uploadLogoBtn.classList.add('active');
+            showToast('O\'z logotipingiz yuklandi', 'success');
+        };
+        reader.readAsDataURL(file);
     });
-});
-
-document.getElementById('custom-logo-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-        showToast('Iltimos, logotip uchun rasm faylini tanlang', 'error');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        customLogoDataUrl = event.target.result;
-        selectedLogo = 'custom';
-        
-        logoPresetBtns.forEach(b => b.classList.remove('active'));
-        document.querySelector('.upload-logo-btn').classList.add('active');
-        showToast('O\'z logotipingiz yuklandi', 'success');
-    };
-    reader.readAsDataURL(file);
-});
+}
 
 // --- Server File Upload Function with Progress Support ---
 async function uploadFile(file, onProgress) {
-    const url = 'https://tmpfiles.org/api/v1/upload';
+    const url = '/api/upload';
     const formData = new FormData();
     formData.append('file', file);
     
@@ -293,8 +302,8 @@ async function handleGenerateClick() {
                 }
             });
             
-            // Format to direct download URL so scanned devices play/render immediately
-            const directUrl = rawUrl.replace('https://tmpfiles.org/', 'https://tmpfiles.org/dl/');
+            // Format to direct download URL only if it's on tmpfiles.org
+            const directUrl = rawUrl.includes('tmpfiles.org') ? rawUrl.replace('https://tmpfiles.org/', 'https://tmpfiles.org/dl/') : rawUrl;
             
             generatedQrUrl = directUrl;
             
@@ -729,10 +738,12 @@ function loadHistoryItem(qr_text, fg_color, bg_color, logo, id) {
     
     selectedLogo = logo || 'none';
     const logoBtns = document.querySelectorAll('.logo-presets .logo-preset-btn');
-    logoBtns.forEach(btn => {
-        if (btn.dataset.logo === selectedLogo) btn.classList.add('active');
-        else btn.classList.remove('active');
-    });
+    if (logoBtns && logoBtns.length > 0) {
+        logoBtns.forEach(btn => {
+            if (btn.dataset.logo === selectedLogo) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
     
     generatedQrUrl = qr_text;
     // Generate without saving to history to avoid duplicates

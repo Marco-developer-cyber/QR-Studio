@@ -45,8 +45,8 @@ body {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: 20px;
+    align-items: flex-start;
+    padding: 40px 20px;
     position: relative;
     overflow-x: hidden;
 }
@@ -972,6 +972,7 @@ select option {
     align-items: center;
     gap: 10px;
     min-width: 0;
+    flex: 1;
 }
 
 .history-icon-wrapper {
@@ -1132,19 +1133,20 @@ select option {
     }
     
     .actions-card {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: column;
+        align-items: stretch;
         gap: 8px;
         max-width: 100%;
+        width: 100%;
     }
     
     .action-btn {
-        flex: 1 1 calc(50% - 4px);
-        padding: 10px 8px;
-        font-size: 12px;
-        gap: 6px;
-        border-radius: 10px;
+        flex: 1 1 auto;
+        width: 100%;
+        padding: 12px 10px;
+        font-size: 13px;
+        gap: 8px;
+        border-radius: 12px;
     }
     
     .toast-container {
