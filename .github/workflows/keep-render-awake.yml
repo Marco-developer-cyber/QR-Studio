@@ -1,0 +1,16 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Render service
+        run: |
+          curl -fsS --max-time 90 "https://qr-studio-bki1.onrender.com/" >/dev/null
+          echo "Ping OK"
