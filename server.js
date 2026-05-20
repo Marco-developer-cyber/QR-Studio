@@ -2,7 +2,6 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 require('dotenv').config();
 
@@ -12,65 +11,14 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Set up local uploads directory
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
-
-// Configure multer storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadsDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, uniqueSuffix + ext);
-    }
-});
+// Configure multer to store files in memory
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 100 * 1024 * 1024 } // 100 MB limit
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 } // 50 MB limit
 });
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(uploadsDir));
-
-// Serve static assets
+// Serve static assets (for frontend files)
 app.use(express.static(__dirname));
-
-// Local upload API endpoint
-app.post('/api/upload', upload.single('file'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-    }
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.get('host');
-    const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
-    res.json({ status: 'success', data: { url: fileUrl } });
-});
-
-// Background job to clean up files older than 60 minutes
-setInterval(() => {
-    fs.readdir(uploadsDir, (err, files) => {
-        if (err) return console.error('Error scanning uploads folder for cleanup:', err);
-        const now = Date.now();
-        files.forEach(file => {
-            const filePath = path.join(uploadsDir, file);
-            fs.stat(filePath, (err, stats) => {
-                if (err) return;
-                // 60 minutes = 3,600,000 milliseconds
-                if (now - stats.mtimeMs > 3600000) {
-                    fs.unlink(filePath, (err) => {
-                        if (err) console.error('Error deleting expired file:', filePath, err);
-                        else console.log('Deleted expired upload:', file);
-                    });
-                }
-            });
-        });
-    });
-}, 15 * 60 * 1000); // Check every 15 minutes
 
 // PostgreSQL Connection Pool
 let pool = null;
@@ -82,9 +30,10 @@ if (process.env.DATABASE_URL) {
         }
     });
 
-    // Initialize database table
+    // Initialize database tables
     const initDb = async () => {
         try {
+            // QR History table
             await pool.query(`
                 CREATE TABLE IF NOT EXISTS qr_history (
                     id SERIAL PRIMARY KEY,
@@ -95,7 +44,18 @@ if (process.env.DATABASE_URL) {
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             `);
-            console.log('Database table qr_history initialized successfully.');
+            
+            // Uploaded Files table (persistent storage)
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS uploaded_files (
+                    id SERIAL PRIMARY KEY,
+                    filename TEXT UNIQUE NOT NULL,
+                    mime_type TEXT NOT NULL,
+                    file_data BYTEA NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+            console.log('Database tables initialized successfully.');
         } catch (err) {
             console.error('Error initializing database:', err);
         }
@@ -104,6 +64,55 @@ if (process.env.DATABASE_URL) {
 } else {
     console.warn('DATABASE_URL environment variable is missing. Database functionality will not be active.');
 }
+
+// Serve uploaded files directly from PostgreSQL (ensures durability on Render)
+app.get('/uploads/:filename', async (req, res) => {
+    if (!pool) {
+        return res.status(404).send('Database not connected');
+    }
+    try {
+        const result = await pool.query(
+            'SELECT mime_type, file_data FROM uploaded_files WHERE filename = $1',
+            [req.params.filename]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).send('Fayl topilmadi / File not found');
+        }
+        const { mime_type, file_data } = result.rows[0];
+        res.setHeader('Content-Type', mime_type);
+        res.send(file_data);
+    } catch (err) {
+        console.error('Error retrieving file from DB:', err);
+        res.status(500).send('Faylni yuklashda xatolik yuz berdi');
+    }
+});
+
+// Persistent upload API endpoint
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+    if (!pool) {
+        return res.status(500).json({ error: 'Database connection missing. Cannot save file.' });
+    }
+    try {
+        const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(req.file.originalname);
+        
+        await pool.query(
+            'INSERT INTO uploaded_files (filename, mime_type, file_data) VALUES ($1, $2, $3)',
+            [filename, req.file.mimetype, req.file.buffer]
+        );
+        
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.get('host');
+        const fileUrl = `${protocol}://${host}/uploads/${filename}`;
+        
+        res.json({ status: 'success', data: { url: fileUrl } });
+    } catch (err) {
+        console.error('Error saving file upload to DB:', err);
+        res.status(500).json({ error: 'Faylni bazaga saqlashda xatolik' });
+    }
+});
 
 // Get history
 app.get('/api/qr', async (req, res) => {
@@ -140,17 +149,29 @@ app.post('/api/qr', async (req, res) => {
     }
 });
 
-// Delete from history
+// Delete from history (with linked file deletion)
 app.delete('/api/qr/:id', async (req, res) => {
     const { id } = req.params;
     if (!pool) {
         return res.json({ success: true, message: 'Deleted locally (no database connected)' });
     }
     try {
+        // Find if this QR contains a local uploaded file reference
+        const qrResult = await pool.query('SELECT qr_text FROM qr_history WHERE id = $1', [id]);
+        if (qrResult.rows.length > 0) {
+            const qr_text = qrResult.rows[0].qr_text;
+            if (qr_text.includes('/uploads/')) {
+                const filename = qr_text.substring(qr_text.lastIndexOf('/') + 1);
+                // Delete the associated file from database
+                await pool.query('DELETE FROM uploaded_files WHERE filename = $1', [filename]);
+                console.log('Associated file deleted from database:', filename);
+            }
+        }
+
         await pool.query('DELETE FROM qr_history WHERE id = $1', [id]);
-        res.json({ success: true, message: 'QR code deleted successfully' });
+        res.json({ success: true, message: 'QR code and file deleted successfully' });
     } catch (err) {
-        console.error('Error deleting QR code:', err);
+        console.error('Error deleting QR code and file:', err);
         res.status(500).json({ error: 'Failed to delete QR code' });
     }
 });
