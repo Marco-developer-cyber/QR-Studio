@@ -40,6 +40,11 @@ function setupDropzone(type) {
     const dropzone = document.getElementById(`${type}-dropzone`);
     const input = document.getElementById(`${type}-input`);
     
+    // Prevent click event on file input from bubbling up to the dropzone container
+    input.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
     // Clicking on dropzone fires hidden input
     dropzone.addEventListener('click', (e) => {
         if (e.target.closest('.remove-file-btn')) return;
