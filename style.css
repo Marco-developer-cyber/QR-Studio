@@ -1033,6 +1033,15 @@ select option {
     margin-top: 2px;
 }
 
+.history-empty {
+    padding: 12px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-align: center;
+}
+
 .history-actions {
     display: flex;
     gap: 6px;

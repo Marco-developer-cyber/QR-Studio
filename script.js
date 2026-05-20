@@ -591,9 +591,10 @@ async function loadHistory() {
         const historyCard = document.getElementById('history-card');
         const historyList = document.getElementById('history-list');
         
+        historyCard.style.display = 'block';
+        historyList.innerHTML = '';
+
         if (data && data.length > 0) {
-            historyCard.style.display = 'block';
-            historyList.innerHTML = '';
             
             data.forEach(item => {
                 const dateStr = new Date(item.created_at).toLocaleString('uz-UZ', {
@@ -659,10 +660,14 @@ async function loadHistory() {
                 historyList.appendChild(div);
             });
         } else {
-            historyCard.style.display = 'none';
+            historyList.innerHTML = '<div class="history-empty">Hozircha tarix mavjud emas</div>';
         }
     } catch (err) {
         console.error('Error loading history:', err);
+        const historyCard = document.getElementById('history-card');
+        const historyList = document.getElementById('history-list');
+        historyCard.style.display = 'block';
+        historyList.innerHTML = '<div class="history-empty">Tarixni yuklashda xatolik yuz berdi</div>';
     }
 }
 

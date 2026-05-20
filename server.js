@@ -208,7 +208,7 @@ app.get('/api/qr', async (req, res) => {
         return res.json([]);
     }
     try {
-        const result = await dbQuery('SELECT * FROM qr_history ORDER BY created_at DESC LIMIT 50');
+        const result = await dbQuery('SELECT * FROM qr_history ORDER BY created_at DESC');
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching history:', err);
