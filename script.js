@@ -433,7 +433,7 @@ async function generateQR(data, shouldSave = true) {
                 mockupStatus.textContent = 'QR-kod skanerlashga tayyor';
                 
                 // Slide up the action cards
-                document.getElementById('actions-card').style.display = 'flex';
+                document.getElementById('actions-card').classList.add('visible');
                 
                 showToast('QR-kod muvaffaqiyatli yaratildi!', 'success');
                 
