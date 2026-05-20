@@ -30,10 +30,12 @@ app.use(express.static(__dirname, {
 
 // PostgreSQL Connection Pool
 let pool = null;
-if (process.env.DATABASE_URL) {
-    pool = new Pool({
+let poolRecreatingPromise = null;
+
+function createPool() {
+    const nextPool = new Pool({
         connectionString: process.env.DATABASE_URL,
-        max: 10,
+        max: 5,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
         keepAlive: true,
@@ -43,16 +45,84 @@ if (process.env.DATABASE_URL) {
         }
     });
 
-    // Prevent app crash when an idle client connection is dropped by network/provider.
-    pool.on('error', (err) => {
+    // Prevent process crash when an idle client is dropped.
+    nextPool.on('error', (err) => {
         console.error('PostgreSQL pool idle client error:', err.message);
     });
+
+    return nextPool;
+}
+
+function isTransientDbDisconnect(err) {
+    if (!err) return false;
+    const message = String(err.message || '').toLowerCase();
+    const code = String(err.code || '').toUpperCase();
+
+    return (
+        message.includes('connection terminated unexpectedly') ||
+        message.includes('connection terminated due to connection timeout') ||
+        message.includes('server closed the connection unexpectedly') ||
+        message.includes('client has encountered a connection error') ||
+        code === 'ECONNRESET' ||
+        code === 'ECONNREFUSED' ||
+        code === '57P01' ||
+        code === '57P02' ||
+        code === '57P03'
+    );
+}
+
+async function recreatePool() {
+    if (poolRecreatingPromise) {
+        await poolRecreatingPromise;
+        return;
+    }
+
+    poolRecreatingPromise = (async () => {
+        const oldPool = pool;
+        pool = createPool();
+
+        if (oldPool) {
+            try {
+                await oldPool.end();
+            } catch (closeErr) {
+                console.warn('Previous PostgreSQL pool close warning:', closeErr.message);
+            }
+        }
+    })();
+
+    try {
+        await poolRecreatingPromise;
+    } finally {
+        poolRecreatingPromise = null;
+    }
+}
+
+async function dbQuery(text, params = [], allowRetry = true) {
+    if (!pool) {
+        throw new Error('Database pool is not initialized');
+    }
+
+    try {
+        return await pool.query(text, params);
+    } catch (err) {
+        if (!allowRetry || !isTransientDbDisconnect(err)) {
+            throw err;
+        }
+
+        console.warn('Transient PostgreSQL disconnect detected. Recreating pool and retrying once...');
+        await recreatePool();
+        return dbQuery(text, params, false);
+    }
+}
+
+if (process.env.DATABASE_URL) {
+    pool = createPool();
 
     // Initialize database tables
     const initDb = async () => {
         try {
             // QR History table
-            await pool.query(`
+            await dbQuery(`
                 CREATE TABLE IF NOT EXISTS qr_history (
                     id SERIAL PRIMARY KEY,
                     qr_text TEXT NOT NULL,
@@ -62,9 +132,9 @@ if (process.env.DATABASE_URL) {
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             `);
-            
+
             // Uploaded Files table (persistent storage)
-            await pool.query(`
+            await dbQuery(`
                 CREATE TABLE IF NOT EXISTS uploaded_files (
                     id SERIAL PRIMARY KEY,
                     filename TEXT UNIQUE NOT NULL,
@@ -89,7 +159,7 @@ app.get('/uploads/:filename', async (req, res) => {
         return res.status(404).send('Database not connected');
     }
     try {
-        const result = await pool.query(
+        const result = await dbQuery(
             'SELECT mime_type, file_data FROM uploaded_files WHERE filename = $1',
             [req.params.filename]
         );
@@ -116,7 +186,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     try {
         const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(req.file.originalname);
         
-        await pool.query(
+        await dbQuery(
             'INSERT INTO uploaded_files (filename, mime_type, file_data) VALUES ($1, $2, $3)',
             [filename, req.file.mimetype, req.file.buffer]
         );
@@ -138,7 +208,7 @@ app.get('/api/qr', async (req, res) => {
         return res.json([]);
     }
     try {
-        const result = await pool.query('SELECT * FROM qr_history ORDER BY created_at DESC LIMIT 50');
+        const result = await dbQuery('SELECT * FROM qr_history ORDER BY created_at DESC LIMIT 50');
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching history:', err);
@@ -156,7 +226,7 @@ app.post('/api/qr', async (req, res) => {
         return res.json({ success: true, message: 'Saved locally (no database connected)' });
     }
     try {
-        const result = await pool.query(
+        const result = await dbQuery(
             'INSERT INTO qr_history (qr_text, fg_color, bg_color, logo) VALUES ($1, $2, $3, $4) RETURNING *',
             [qr_text, fg_color, bg_color, logo]
         );
@@ -175,18 +245,18 @@ app.delete('/api/qr/:id', async (req, res) => {
     }
     try {
         // Find if this QR contains a local uploaded file reference
-        const qrResult = await pool.query('SELECT qr_text FROM qr_history WHERE id = $1', [id]);
+        const qrResult = await dbQuery('SELECT qr_text FROM qr_history WHERE id = $1', [id]);
         if (qrResult.rows.length > 0) {
             const qr_text = qrResult.rows[0].qr_text;
             if (qr_text.includes('/uploads/')) {
                 const filename = qr_text.substring(qr_text.lastIndexOf('/') + 1);
                 // Delete the associated file from database
-                await pool.query('DELETE FROM uploaded_files WHERE filename = $1', [filename]);
+                await dbQuery('DELETE FROM uploaded_files WHERE filename = $1', [filename]);
                 console.log('Associated file deleted from database:', filename);
             }
         }
 
-        await pool.query('DELETE FROM qr_history WHERE id = $1', [id]);
+        await dbQuery('DELETE FROM qr_history WHERE id = $1', [id]);
         res.json({ success: true, message: 'QR code and file deleted successfully' });
     } catch (err) {
         console.error('Error deleting QR code and file:', err);
