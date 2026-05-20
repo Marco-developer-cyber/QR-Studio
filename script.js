@@ -433,7 +433,9 @@ async function generateQR(data, shouldSave = true) {
                 mockupStatus.textContent = 'QR-kod skanerlashga tayyor';
                 
                 // Slide up the action cards
-                document.getElementById('actions-card').classList.add('visible');
+                const actionsCard = document.getElementById('actions-card');
+                actionsCard.style.display = '';
+                actionsCard.classList.add('visible');
                 
                 showToast('QR-kod muvaffaqiyatli yaratildi!', 'success');
                 
@@ -565,7 +567,9 @@ function clearResult() {
     `;
     
     document.getElementById('scanner-line').style.display = 'none';
-    document.getElementById('actions-card').style.display = 'none';
+    const actionsCard = document.getElementById('actions-card');
+    actionsCard.classList.remove('visible');
+    actionsCard.style.display = '';
     document.getElementById('mockup-status').textContent = 'Yaratilishi kutilmoqda...';
     generatedQrUrl = '';
     currentQrDbId = null;
